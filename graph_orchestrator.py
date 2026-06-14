@@ -1,65 +1,39 @@
+#graph_orchestrator.py
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
 from pydantic import BaseModel
-import os
 
-# Import agents
-from agents import search_agent, booking_agent, cancellation_agent
 
-# Define the shared State for our agents
 class State(TypedDict):
     task: str
-    seat_id: int
+    seat_id: int | None
     user_id: str
     history: List[str]
+    action: str
 
-# Define RouterOutput for structured LLM output
 class RouterOutput(BaseModel):
     action: str
-    seat_id: int
+    seat_id: int | None = None
 
-# 1. Initialize LLM for Structured Output
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 structured_llm = llm.with_structured_output(RouterOutput)
 
-# 2. Add the Reasoning Node
 def reasoning_node(state):
-    task = state.get("task", "")
-    decision = structured_llm.invoke(f"Analyze this request: '{task}'. What is the intent?")
+    decision = structured_llm.invoke(f"Analyze: '{state.get('task')}'. Intent?")
+    action = decision.action if decision.action in ["search", "book", "cancel"] else "invalid"
+    return {"action": action, "seat_id": decision.seat_id, "history": [f"Routing to {action}"]}
 
-    # Update the state with the LLM's decision
-    return (
-        {
-            "task": decision.action,  # Updates the task to the clean action
-            "seat_id": decision.seat_id,
-            "history": [f"LLM decided to {decision.action} for seat {decision.seat_id}"],
-        }
-    )
+graph_builder = StateGraph(State)
+graph_builder.add_node("reasoning", reasoning_node)
+graph_builder.add_node("search", search_agent)
+graph_builder.add_node("booking", booking_agent)
+graph_builder.add_node("cancellation", cancellation_agent)
 
-# 3. Update the builder
-builder = StateGraph(State)
-
-builder.add_node("reasoning", reasoning_node)  # New entry point
-builder.add_node("search", search_agent)
-builder.add_node("booking", booking_agent)
-builder.add_node("cancellation", cancellation_agent)
-
-builder.set_entry_point("reasoning")
-
-# 4. Update the Supervisor to use LLM results
-def supervisor(state):
-    # Now simply routes based on the state set by the reasoning_node
-    return state["task"]
-
-builder.add_conditional_edges("reasoning", supervisor, {
-    "search": "search",
-    "book": "booking",
-    "cancel": "cancellation"
+graph_builder.set_entry_point("reasoning")
+graph_builder.add_conditional_edges("reasoning", lambda state: state["action"], {
+    "search": "search", "book": "booking", "cancel": "cancellation"
 })
+graph_builder.add_edge("search", END); graph_builder.add_edge("booking", END); graph_builder.add_edge("cancellation", END)
 
-builder.add_edge("search", END)
-builder.add_edge("booking", END)
-builder.add_edge("cancellation", END)
-
-graph = builder.compile()
+graph = graph_builder.compile()
