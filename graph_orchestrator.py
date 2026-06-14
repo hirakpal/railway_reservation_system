@@ -2,6 +2,10 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
 from pydantic import BaseModel
+import os
+
+# Import agents
+from agents import search_agent, booking_agent, cancellation_agent
 
 # Define the shared State for our agents
 class State(TypedDict):
@@ -36,7 +40,7 @@ def reasoning_node(state):
 # 3. Update the builder
 builder = StateGraph(State)
 
-builder.add_node("reasoning", reasoning_node)  # New entry point
+builder.add_node("reasoning", reasoning_node)
 builder.add_node("search", search_agent)
 builder.add_node("booking", booking_agent)
 builder.add_node("cancellation", cancellation_agent)
