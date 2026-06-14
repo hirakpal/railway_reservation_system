@@ -3,3 +3,4 @@ langchain-openai
 langgraph
 streamlit
 pydantic
+openai
