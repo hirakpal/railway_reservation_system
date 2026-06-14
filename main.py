@@ -15,7 +15,7 @@ if 'db_init' not in st.session_state:
     init_db()
     st.session_state.db_init = True
 
-st.title("🚆 AI Railway Reservation")
+st.title("🚆 AI Seat Reservation")
 
 # 2. UI Options
 option = st.radio(
