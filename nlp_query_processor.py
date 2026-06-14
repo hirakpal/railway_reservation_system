@@ -1,8 +1,5 @@
-# nlp_query_processor.py
 """
-Very small Natural Language -> structured query parser.
-This is intentionally lightweight so it works offline. Optionally you can plug
-in an LLM call (OpenAI) if you have an API key.
+NLP query processor - extended to recognize seat position words and simple numeric ranges.
 """
 import os
 import re
@@ -12,19 +9,13 @@ OPENAI_ENABLED = bool(os.environ.get("OPENAI_API_KEY"))
 
 
 def parse_nl_query(text: str) -> Dict[str, Any]:
-    """Parse a user NL query into a preferences dict used by the recommender.
-
-    Examples:
-      - "I want an aisle seat near the entrance"
-      - "Show me window seats"
-    """
-    text_l = text.lower()
+    text_l = (text or "").lower()
     prefs: Dict[str, Any] = {}
     if "aisle" in text_l:
         prefs["position"] = "aisle"
     elif "window" in text_l:
         prefs["position"] = "window"
-    elif "middle" in text_l:
+    elif "middle" in text_l or "center" in text_l:
         prefs["position"] = "middle"
 
     if "entrance" in text_l:
@@ -36,6 +27,12 @@ def parse_nl_query(text: str) -> Dict[str, Any]:
     ids = re.findall(r"seat[s]?\s*(\d+)", text_l)
     if ids:
         prefs["seat_ids"] = [int(i) for i in ids]
+
+    # simple numeric ranges: "seats 2-4"
+    range_match = re.search(r"seats?\s*(\d+)\s*-\s*(\d+)", text_l)
+    if range_match:
+        a = int(range_match.group(1)); b = int(range_match.group(2))
+        prefs["seat_ids"] = list(range(a, b + 1))
 
     return prefs
 
