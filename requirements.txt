@@ -1,14 +1,5 @@
-# Core Frameworks
 langchain
 langchain-openai
 langgraph
-pydantic
-
-# UI and Web
 streamlit
-
-# Database & Utilities
-sqlite3
-
-# Optional: For better debugging and visualization of your graph
-langsmith
+pydantic
