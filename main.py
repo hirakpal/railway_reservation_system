@@ -1,6 +1,6 @@
 import streamlit as st
-# from harness import run_harness # run_harness is defined in a previous cell
-# from database_manager import init_db # init_db is defined in a previous cell
+from harness import run_harness # run_harness is defined in a previous cell
+from database_manager import init_db # init_db is defined in a previous cell
 
 # 1. Setup UI
 st.set_page_config(page_title="Railway Reservation System", layout="centered")
