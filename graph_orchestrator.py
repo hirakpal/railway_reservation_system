@@ -23,8 +23,16 @@ structured_llm = llm.with_structured_output(RouterOutput)
 
 def reasoning_node(state):
     decision = structured_llm.invoke(f"Analyze: '{state.get('task')}'. Intent?")
-    action = decision.action if decision.action in ["search", "book", "cancel"] else "invalid"
-    return {"action": action, "seat_id": decision.seat_id, "history": [f"Routing to {action}"]}
+    
+    # Strictly map to one of the allowed keys
+    allowed_actions = ["search", "book", "cancel"]
+    action = decision.action if decision.action in allowed_actions else "invalid"
+    
+    return {
+        "action": action, 
+        "seat_id": decision.seat_id, 
+        "history": [f"Routing to {action}"]
+    }
 
 def invalid_seat_id_handler(state):
     # This node handles cases where the LLM might output an invalid action or seat ID
@@ -45,10 +53,13 @@ graph_builder.add_conditional_edges(
         "search": "search",
         "book": "booking",
         "cancel": "cancellation",
-        "invalid": "invalid_seat_id_handler", # Add this mapping
+        "invalid": "invalid_seat_id_handler", # Ensure this is EXACTLY 'invalid'
     },
 )
-graph_builder.add_edge("search", END); graph_builder.add_edge("booking", END); graph_builder.add_edge("cancellation", END)
+graph_builder.add_edge("search", END)
+graph_builder.add_edge("booking", END)
+graph_builder.add_edge("cancellation", END)
 graph_builder.add_edge("invalid_seat_id_handler", END)
+
 
 graph = graph_builder.compile()
