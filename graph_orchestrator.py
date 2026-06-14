@@ -5,6 +5,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from typing import TypedDict, List
 from pydantic import BaseModel
 
+# Import agent functions
+from agents import search_agent, booking_agent, cancellation_agent, status_agent
+
 # 1. Define State and Router Output
 class State(TypedDict):
     task: str
@@ -38,6 +41,7 @@ def reasoning_node(state):
         "seat_id": decision.seat_id, 
         "history": [f"Routing to {final_action}"]
     }
+
 
 def invalid_seat_id_handler(state):
     return {"history": ["Invalid intent or input. Please try again."], "action": "invalid"}
