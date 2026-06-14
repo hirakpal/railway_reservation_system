@@ -1,3 +1,4 @@
+%%writefile main.py
 #main.py
 import streamlit as st
 import sqlite3
@@ -195,6 +196,12 @@ if st.button("Submit Request"):
             st.write("### Current Action Status")
             st.write(f"**Action Performed:** {result.get('action')}")
             st.write(f"**Seat ID:** {result.get('seat_id')}")
+
+            # Display Booking Confirmation if successful
+            if result.get('action') == 'book' and result.get('history') and "Success! Seat booked." in result.get('history')[0]:
+                st.write("### Booking Confirmation")
+                st.success(f"Seat {result.get('seat_id')} has been successfully booked by {user_id}!")
+
     else:
         st.warning("Please enter a task.")
 
