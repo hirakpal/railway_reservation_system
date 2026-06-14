@@ -1,34 +1,28 @@
+#harness.py
 from langgraph.checkpoint.memory import MemorySaver
-from graph_orchestrator import graph
-from database_manager import run_janitor
 import uuid
-
-# Memory for persistence
+# 1. Initialize Memory
 memory = MemorySaver()
 
-# The graph is already compiled from graph_orchestrator.py
-persistent_graph = graph
+# 2. Re-compile the graph by passing the checkpointer to the builder,
+# OR use the existing graph if it already has the checkpointer.
+# Since our graph is already compiled, we should re-compile the builder instead:
+
+# No import needed here, assuming graph_builder is globally available from a previous cell's execution
+persistent_graph = graph_builder.compile(checkpointer=memory)
 
 def run_harness(task_input, seat_id=None, user_id="user_123"):
-    # 1. Operational Maintenance: Run Janitor before any user action
     run_janitor()
-
-    # 2. Setup Persistence: Unique thread for this session
-    config = {
-        "configurable": {"thread_id": user_id},
-        "checkpointer": memory # Pass the checkpointer here
-    }
-
-    # 3. Execution & Streaming
+    
+    # Config defines the thread for persistence
+    config = {"configurable": {"thread_id": user_id}}
+    
     print(f"--- Harness: Running task '{task_input}' ---")
-    final_state = None
-
-    # We stream events from the graph
-    for event in persistent_graph.stream(
-        {"task": task_input, "seat_id": seat_id, "user_id": user_id},
+    
+    # 3. Use the persistent_graph
+    final_state = persistent_graph.invoke(
+        {"task": task_input, "seat_id": seat_id, "user_id": user_id, "history": []}, 
         config=config
-    ):
-        print(f"Update: {event}")
-        final_state = event
-
+    )
+        
     return final_state
