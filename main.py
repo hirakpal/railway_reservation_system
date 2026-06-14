@@ -1,12 +1,3 @@
-import streamlit as st
-import sqlite3
-import pandas as pd
-from datetime import datetime, timedelta
-from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
-from pydantic import BaseModel
-from typing import TypedDict, List
 # --- 1. Database & Persistence Setup ---
 def init_db():
     conn = sqlite3.connect("railway.db")
@@ -32,11 +23,8 @@ def agent_logic(state):
     action, sid = state['action'], state['seat_id']
     if action == "book":
         msg = "✅ Success! Seat booked." if update_seat(sid, "book") else "❌ Failed: Seat already booked."
-    elif action == "cancel":
+    else: # cancel
         msg = "✅ Cancellation successful." if update_seat(sid, "cancel") else "❌ Failed: Not your ticket or seat is available."
-    else: # status
-        row = sqlite3.connect("railway.db").execute("SELECT status, user_id FROM seats WHERE seat_id=?", (sid,)).fetchone()
-        msg = f"ℹ️ Seat {sid} is {row[0]} (User: {row[1] or 'None'})"
     return {"history": [msg]}
 
 class State(TypedDict): action: str; seat_id: int; history: List[str]
@@ -50,17 +38,17 @@ st.set_page_config(layout="wide", page_title="Seat Reservation")
 st.title("Seat Reservation System")
 init_db()
 
-# Initialize session state for persistent feedback
 if 'msg' not in st.session_state: st.session_state.msg = None
 
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    action = st.radio("Action:", ["Book Seat", "Cancel Seat", "Check Seat Status"])
+    # Removed "Check Seat Status" from the list
+    action = st.radio("Action:", ["Book Seat", "Cancel Seat"])
     sid = st.number_input("Seat ID (1-5):", 1, 5)
     
     if st.button("Process"):
-        act_map = {"Book Seat": "book", "Cancel Seat": "cancel", "Check Seat Status": "status"}
+        act_map = {"Book Seat": "book", "Cancel Seat": "cancel"}
         res = graph.invoke({"action": act_map[action], "seat_id": sid}, {"configurable": {"thread_id": "u1"}})
         st.session_state.msg = res['history'][0]
         st.rerun()
