@@ -1,27 +1,34 @@
 #harness.py
 from langgraph.checkpoint.memory import MemorySaver
 import uuid
-# 1. Initialize Memory
+
+# 1. Initialize Memory for state persistence
 memory = MemorySaver()
 
-# 2. Re-compile the graph by passing the checkpointer to the builder,
-# OR use the existing graph if it already has the checkpointer.
-# Since our graph is already compiled, we should re-compile the builder instead:
-
-# No import needed here, assuming graph_builder is globally available from a previous cell's execution
+# 2. Compile the graph with the checkpointer
+# This binds the memory to your graph definition
 persistent_graph = graph_builder.compile(checkpointer=memory)
 
 def run_harness(task_input, seat_id=None, user_id="user_123"):
+    """Executes a task through the persistent graph and returns the state."""
+    
+    # Clean stale locks from previous sessions before running the task
     run_janitor()
     
-    # Config defines the thread for persistence
+    # 3. Define the thread_id for stateful persistence
+    # Using user_id as thread_id isolates each user's history
     config = {"configurable": {"thread_id": user_id}}
     
     print(f"--- Harness: Running task '{task_input}' ---")
     
-    # 3. Use the persistent_graph
+    # 4. Invoke the persistent graph
     final_state = persistent_graph.invoke(
-        {"task": task_input, "seat_id": seat_id, "user_id": user_id, "history": []}, 
+        {
+            "task": task_input, 
+            "seat_id": seat_id, 
+            "user_id": user_id, 
+            "history": []
+        }, 
         config=config
     )
         
