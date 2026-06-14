@@ -1,3 +1,5 @@
+import sqlite3
+
 def search_available_seats():
     conn = sqlite3.connect("railway.db")
     cursor = conn.cursor()
@@ -23,6 +25,8 @@ def booking_agent(state):
         print(f"Agent: Invalid user ID '{user_id}'. Booking failed.")
         return {"history": [f"Booking status for seat {seat_id}: Failed: Invalid user ID."]}
 
+    # The book_seat_atomic function is assumed to be imported or available globally
+    from database_manager import book_seat_atomic # Assuming database_manager is available
     print(f"Agent: Attempting to book seat {seat_id}...")
     success = book_seat_atomic(seat_id, user_id)
 
@@ -33,7 +37,9 @@ def booking_agent(state):
 def cancellation_agent(state):
     seat_id = state.get("seat_id")
     user_id = state.get("user_id")
-    
+
+    # The cancel_booking function is assumed to be imported or available globally
+    from database_manager import cancel_booking # Assuming database_manager is available
     success = cancel_booking(seat_id, user_id)
     msg = "Cancellation successful." if success else "Cancellation failed: Not your ticket."
     return {"history": [msg]}
