@@ -28,6 +28,17 @@ def search_available_seats():
     conn.close()
     return available
 
+# NEW FUNCTION ADDED
+def get_seat_status(seat_id):
+    conn = sqlite3.connect("railway.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT status, user_id FROM seats WHERE seat_id = ?", (seat_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {"status": row[0], "user_id": row[1]}
+    return "not_found"
+
 def book_seat_atomic(seat_id, user_id):
     conn = sqlite3.connect("railway.db")
     cursor = conn.cursor()
