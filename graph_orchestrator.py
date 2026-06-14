@@ -4,6 +4,8 @@ from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
 from pydantic import BaseModel
 
+# Import agent functions from the global notebook environment
+from __main__ import search_agent, booking_agent, cancellation_agent
 
 class State(TypedDict):
     task: str
@@ -24,16 +26,29 @@ def reasoning_node(state):
     action = decision.action if decision.action in ["search", "book", "cancel"] else "invalid"
     return {"action": action, "seat_id": decision.seat_id, "history": [f"Routing to {action}"]}
 
+def invalid_seat_id_handler(state):
+    # This node handles cases where the LLM might output an invalid action or seat ID
+    return {"history": ["Invalid request: Please provide a valid seat ID (a positive integer)."], "action": "invalid"}
+
 graph_builder = StateGraph(State)
 graph_builder.add_node("reasoning", reasoning_node)
 graph_builder.add_node("search", search_agent)
 graph_builder.add_node("booking", booking_agent)
 graph_builder.add_node("cancellation", cancellation_agent)
+graph_builder.add_node("invalid_seat_id_handler", invalid_seat_id_handler)
 
 graph_builder.set_entry_point("reasoning")
-graph_builder.add_conditional_edges("reasoning", lambda state: state["action"], {
-    "search": "search", "book": "booking", "cancel": "cancellation"
-})
+graph_builder.add_conditional_edges(
+    "reasoning",
+    lambda state: state["action"],
+    {
+        "search": "search",
+        "book": "booking",
+        "cancel": "cancellation",
+        "invalid": "invalid_seat_id_handler", # Add this mapping
+    },
+)
 graph_builder.add_edge("search", END); graph_builder.add_edge("booking", END); graph_builder.add_edge("cancellation", END)
+graph_builder.add_edge("invalid_seat_id_handler", END)
 
 graph = graph_builder.compile()
